@@ -1,0 +1,16 @@
+version: '3.7'
+
+services:
+  api:
+    build:
+      context: ./api
+
+  app:
+    build:
+      context: ./app
+
+  nginx:
+    build:
+      context: ./docker/nginx
+    ports:
+    - "80:80"
