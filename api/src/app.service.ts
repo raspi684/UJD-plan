@@ -115,7 +115,7 @@ export class AppService {
 
   private parseEntries(entries) {
     const timeRegex = /((\d{2}:\d{2})(-?)){1,2}/;
-    const weeksPeriod = /Tyg(\s*)((\d{1,2}(-\d{1,2})?)(,*)(\s*))+/;
+    const weeksPeriod = /(Tyg\s*|Tydz\s*)((\d{1,2}(-\d{1,2})?)(,*)(\s*))+/;
 
     const res = {};
 
@@ -125,6 +125,7 @@ export class AppService {
 
         const hours = timeRegex.exec(item),
           weeks = weeksPeriod.exec(item);
+
         const subject = item
           .replace(hours[0], '')
           .replace(weeks[0], '')
@@ -148,6 +149,10 @@ export class AppService {
   }
 
   private static convertToFullWeeks(weeks: string) {
+    if (weeks.startsWith('Tydz')) {
+      const newWeeks = weeks.replace('Tydz', '').replace(' ', '');
+      return newWeeks;
+    }
     const periodRegex = /\d{1,2}-\d{1,2}/;
     const periodGroupsRegex = /(\d{1,2})-(\d{1,2})/;
     let newWeeks = weeks.replace(/Tyg(\s?)/, '').replace(/\s/g, '');
