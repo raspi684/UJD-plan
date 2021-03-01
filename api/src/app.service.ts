@@ -50,7 +50,8 @@ export class AppService {
       await fs.promises.writeFile(path.resolve('pdfs', filename), res.data);
     }
     const pdfData = await AppService.loadFromPDF(filename);
-    const data = await this.parsePDF(pdfData);
+    const parsedPDF = await this.parsePDF(pdfData);
+    const data = this.parseEntries(parsedPDF);
 
     return data;
   }
@@ -110,5 +111,57 @@ export class AppService {
     });
 
     return entries;
+  }
+
+  private parseEntries(entries) {
+    const timeRegex = /((\d{2}:\d{2})(-?)){1,2}/;
+    const weeksPeriod = /Tyg(\s*)((\d{1,2}(-\d{1,2})?)(,*)(\s*))+/;
+
+    const res = {};
+
+    Object.keys(entries).forEach((entry) => {
+      entries[entry].forEach((item) => {
+        if (!res[entry]) res[entry] = [];
+
+        const hours = timeRegex.exec(item),
+          weeks = weeksPeriod.exec(item);
+        const subject = item
+          .replace(hours[0], '')
+          .replace(weeks[0], '')
+          .replace(', ', '')
+          .split(';');
+
+        res[entry].push({
+          hours: hours[0],
+          weeks: AppService.convertToFullWeeks(weeks[0]),
+          subject: {
+            name: subject[0],
+            lecturer: subject[1],
+            room: subject[2],
+            group: subject[3],
+          },
+        });
+      });
+    });
+
+    return res;
+  }
+
+  private static convertToFullWeeks(weeks: string) {
+    const periodRegex = /\d{1,2}-\d{1,2}/;
+    const periodGroupsRegex = /(\d{1,2})-(\d{1,2})/;
+    let newWeeks = weeks.replace(/Tyg(\s?)/, '').replace(/\s/g, '');
+
+    while (periodRegex.test(newWeeks)) {
+      const period = periodRegex.exec(newWeeks)[0];
+      const [all, from, to] = periodGroupsRegex.exec(period);
+      const newPeriod = [];
+      for (let i = parseInt(from); i <= parseInt(to); i++) {
+        newPeriod.push(i);
+      }
+      newWeeks = newWeeks.replace(period, newPeriod.join(','));
+    }
+
+    return newWeeks;
   }
 }
