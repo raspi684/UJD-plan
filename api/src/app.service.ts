@@ -66,7 +66,7 @@ export class AppService {
   private async parsePDF(items) {
     const timeRegex = /^(\d\d:\d\d)-/g;
     const timeRegexMess = /(\d\d:\d\d)[2+]/g;
-    const weekDays = /^((poniedzia.ek|Pn)|(wtorek|Wt)|(.roda|.r)|(czwartek|Cz)|(pi.tek|Pt)|(sobota|So)|(niedziela|N))$/;
+    const weekDays = /^((poniedzia.ek|Pn)|(wtorek|Wt)|(.roda|[^d]r)|(czwartek|Cz)|(pi.tek|Pt)|(sobota|So)|(niedziela|N))$/;
 
     let header = '';
     const entries = {};
