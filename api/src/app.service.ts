@@ -1,4 +1,5 @@
-import { HttpService, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, HttpService, Inject, Injectable } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import { parse } from 'node-html-parser';
 import * as fs from 'fs';
 import path from 'path';
@@ -8,12 +9,18 @@ import pdfparse from 'pdf-parse';
 export class AppService {
   groupsPageURL = 'https://zsos.ujd.edu.pl/rozklady_zajec/gindex.html';
   groupTimetableURL = 'https://zsos.ujd.edu.pl/rozklady_zajec';
-  // groupsPageURL =
-  //   'http://localhost:8000/Uniwersytet%20Humanistyczno-Przyrodniczy%20im.%20Jana%20D%C5%82ugosza%20w%20Cz%C4%99stochowie%20-%20PLAN%20ZAJ%C4%98%C4%86%20-%20Zima%202018_2019.html';
-  constructor(private httpService: HttpService) {}
+  constructor(
+    private httpService: HttpService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   getGroups(): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
+    return new Promise<any>(async (resolve, reject) => {
+      const cachedGroups = await this.cacheManager.get('groups');
+      if (cachedGroups) {
+        return resolve(cachedGroups);
+      }
+
       this.httpService
         .get(this.groupsPageURL, {
           headers: {
@@ -22,7 +29,7 @@ export class AppService {
           },
         })
         .toPromise()
-        .then((res) => {
+        .then(async (res) => {
           const groups = parse(res.data)
             .querySelectorAll('select > option')
             .map((i) => {
@@ -34,6 +41,7 @@ export class AppService {
             })
             .filter((i) => !!i);
 
+          await this.cacheManager.set('groups', groups, { ttl: 60 * 60 * 24 });
           resolve(groups);
         })
         .catch(reject);
@@ -41,24 +49,28 @@ export class AppService {
   }
 
   async getTimetable(filename: string): Promise<any> {
-    if (!fs.existsSync(path.resolve('pdfs', filename))) {
-      const res = await this.httpService
-        .get(`${this.groupTimetableURL}/${filename}`, {
-          responseType: 'arraybuffer',
-        })
-        .toPromise();
-      await fs.promises.writeFile(path.resolve('pdfs', filename), res.data);
-    }
-    const pdfData = await AppService.loadFromPDF(filename);
+    const timetable = await this.cacheManager.get(`group_${filename}`);
+    if (timetable) return timetable;
+
+    const res = await this.httpService
+      .get(`${this.groupTimetableURL}/${filename}`, {
+        responseType: 'arraybuffer',
+      })
+      .toPromise();
+
+    const pdfData = await AppService.extractFromPDF(res.data);
     const parsedPDF = await this.parsePDF(pdfData);
     const data = this.parseEntries(parsedPDF);
+
+    await this.cacheManager.set(`group_${filename}`, data, {
+      ttl: 60 * 60 * 6,
+    });
 
     return data;
   }
 
-  private static async loadFromPDF(filename: string): Promise<string[]> {
-    const file = fs.readFileSync(path.resolve('pdfs', filename));
-    const res = await pdfparse(file);
+  private static async extractFromPDF(data): Promise<string[]> {
+    const res = await pdfparse(data);
 
     return res.text.split('\n');
   }
@@ -66,7 +78,7 @@ export class AppService {
   private async parsePDF(items) {
     const timeRegex = /^(\d\d:\d\d)-/g;
     const timeRegexMess = /(\d\d:\d\d)[2+]/g;
-    const weekDays = /^((poniedzia.ek|Pn)|(wtorek|Wt)|(.roda|[^d]r)|(czwartek|Cz)|(pi.tek|Pt)|(sobota|So)|(niedziela|N))$/;
+    const weekDaysRegex = /^((poniedzia.ek|Pn)|(wtorek|Wt)|(.roda|[^d]r)|(czwartek|Cz)|(pi.tek|Pt)|(sobota|So)|(niedziela|N))$/;
 
     let header = '';
     const entries = {};
@@ -79,7 +91,7 @@ export class AppService {
     items.forEach((item) => {
       if (item.length == 0) return;
 
-      const weekDaysResult = weekDays.exec(item);
+      const weekDaysResult = weekDaysRegex.exec(item);
       if (weekDaysResult) {
         currentKey = weekDaysResult[0];
         if (!entries[currentKey]) entries[currentKey] = [];
@@ -115,7 +127,7 @@ export class AppService {
 
   private parseEntries(entries) {
     const timeRegex = /((\d{2}:\d{2})(-?)){1,2}/;
-    const weeksPeriod = /(Tyg\s*|Tydz\s*)((\d{1,2}(-\d{1,2})?)(,*)(\s*))+/;
+    const weeksPeriodRegex = /(Tyg\s*|Tydz\s*)((\d{1,2}(-\d{1,2})?)(,*)(\s*))+/;
 
     const res = {};
 
@@ -124,7 +136,7 @@ export class AppService {
         if (!res[entry]) res[entry] = [];
 
         const hours = timeRegex.exec(item),
-          weeks = weeksPeriod.exec(item);
+          weeks = weeksPeriodRegex.exec(item);
 
         const subject = item
           .replace(hours[0], '')
