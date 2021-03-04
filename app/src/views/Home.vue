@@ -175,7 +175,6 @@ export default {
     fetch(`${config.base_url}/groups`).then(value => {
       value.json().then(json => {
         this.groups = json;
-        this.groups.unshift({ group: "XD", filename: "xyz.pdf" });
         this.groupsFetching = false;
       });
     });
