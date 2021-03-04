@@ -17,6 +17,7 @@
                   item-text="group"
                   item-value="filename"
                   v-model="selectedGroup"
+                  :error-messages="groupsError"
                 ></v-autocomplete>
                 <v-btn
                   color="primary"
@@ -118,49 +119,59 @@ export default {
       return d1;
     },
     reset() {
-      this.selectedGroup = "";
       this.step = 1;
       this.events = [];
     },
     fetchTimetable() {
       fetch(`${config.base_url}/groups/${this.selectedGroup}`).then(value => {
         value.json().then(json => {
-          Object.keys(json).forEach((items, idx) => {
-            json[items].forEach(item => {
-              // eslint-disable-next-line no-unused-vars
-              const [all, from, to] = /(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/.exec(
-                item.hours
-              );
-              const weeks = item.weeks.split(",");
-              weeks.forEach(week => {
-                const dates = {
-                  start: this.getDateFromWeekAndDayOfWeek(
-                    2021,
-                    +week + 9,
-                    idx,
-                    from
-                  ).toLocaleString("sv"),
-                  end: this.getDateFromWeekAndDayOfWeek(
-                    2021,
-                    +week + 9,
-                    idx,
-                    to
-                  ).toLocaleString("sv")
-                };
+          if (json?.statusCode) {
+            this.groupsError = json.message;
+            this.reset();
+          } else {
+            Object.keys(json).forEach((items, idx) => {
+              json[items].forEach(item => {
+                const [
+                  // eslint-disable-next-line no-unused-vars
+                  all,
+                  from,
+                  to
+                ] = /(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/.exec(item.hours);
+                const weeks = item.weeks.split(",");
+                weeks.forEach(week => {
+                  const dates = {
+                    start: this.getDateFromWeekAndDayOfWeek(
+                      2021,
+                      +week + 9,
+                      idx,
+                      from
+                    ).toLocaleString("sv"),
+                    end: this.getDateFromWeekAndDayOfWeek(
+                      2021,
+                      +week + 9,
+                      idx,
+                      to
+                    ).toLocaleString("sv")
+                  };
 
-                this.events.push({
-                  name: `${item.subject.name} | ${item.subject.lecturer} | ${item.subject.group}`,
-                  ...dates
+                  this.events.push({
+                    name: `${item.subject.name} | ${item.subject.lecturer} | ${item.subject.group}`,
+                    ...dates
+                  });
                 });
               });
             });
-          });
-          this.step++;
+            this.step++;
+            this.groupsError = "";
+          }
         });
       });
     }
   },
   mounted() {
+    this.selectedGroup = this.$route.query.qa || "";
+    if (this.selectedGroup) this.step = 2;
+
     fetch(`${config.base_url}/groups`).then(value => {
       value.json().then(json => {
         this.groups = json;
@@ -179,7 +190,7 @@ export default {
   },
   data: () => {
     return {
-      type: "month",
+      type: "week",
       types: [
         { text: "Miesiąc", value: "month" },
         { text: "Tydzień", value: "week" },
@@ -192,7 +203,8 @@ export default {
       step: 1,
       today: new Date(),
       events: [],
-      calendarTitle: ""
+      calendarTitle: "",
+      groupsError: ""
     };
   },
   watch: {
@@ -202,6 +214,12 @@ export default {
         if (val === 2) {
           this.fetchTimetable();
         }
+      }
+    },
+    selectedGroup: {
+      handler(val) {
+        if (this.$route.query.qa === val) return;
+        this.$router.push({ query: { qa: val } });
       }
     }
   }
