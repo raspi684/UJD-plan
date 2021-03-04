@@ -1,4 +1,11 @@
-import { CACHE_MANAGER, HttpService, Inject, Injectable } from '@nestjs/common';
+import {
+  CACHE_MANAGER,
+  HttpService,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { parse } from 'node-html-parser';
 import * as fs from 'fs';
@@ -52,21 +59,30 @@ export class AppService {
     const timetable = await this.cacheManager.get(`group_${filename}`);
     if (timetable) return timetable;
 
-    const res = await this.httpService
-      .get(`${this.groupTimetableURL}/${filename}`, {
-        responseType: 'arraybuffer',
-      })
-      .toPromise();
+    try {
+      const res = await this.httpService
+        .get(`${this.groupTimetableURL}/${filename}`, {
+          responseType: 'arraybuffer',
+        })
+        .toPromise();
 
-    const pdfData = await AppService.extractFromPDF(res.data);
-    const parsedPDF = await this.parsePDF(pdfData);
-    const data = this.parseEntries(parsedPDF);
+      const pdfData = await AppService.extractFromPDF(res.data);
+      const parsedPDF = await this.parsePDF(pdfData);
+      const data = this.parseEntries(parsedPDF);
 
-    await this.cacheManager.set(`group_${filename}`, data, {
-      ttl: 60 * 60 * 6,
-    });
+      await this.cacheManager.set(`group_${filename}`, data, {
+        ttl: 60 * 60 * 6,
+      });
 
-    return data;
+      return data;
+    } catch (e) {
+      switch (e.response.status) {
+        case 404:
+          throw new NotFoundException();
+        default:
+          throw new InternalServerErrorException();
+      }
+    }
   }
 
   private static async extractFromPDF(data): Promise<string[]> {
