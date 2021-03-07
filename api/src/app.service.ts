@@ -148,9 +148,8 @@ export class AppService {
     const res = {};
 
     Object.keys(entries).forEach((entry) => {
+      if (!res[entry]) res[entry] = [];
       entries[entry].forEach((item) => {
-        if (!res[entry]) res[entry] = [];
-
         const hours = timeRegex.exec(item),
           weeks = weeksPeriodRegex.exec(item);
 
