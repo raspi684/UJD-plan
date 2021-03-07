@@ -8,13 +8,12 @@ import {
 } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { parse } from 'node-html-parser';
-import * as fs from 'fs';
-import path from 'path';
 import pdfparse from 'pdf-parse';
+import { decode } from 'single-byte';
 
 @Injectable()
 export class AppService {
-  groupsPageURL = 'https://zsos.ujd.edu.pl/rozklady_zajec/gindex.html';
+  groupsPageURL = 'https://zsos.ujd.edu.pl/rozklady_zajec/fullindex.html';
   groupTimetableURL = 'https://zsos.ujd.edu.pl/rozklady_zajec';
   constructor(
     private httpService: HttpService,
@@ -29,15 +28,10 @@ export class AppService {
       }
 
       this.httpService
-        .get(this.groupsPageURL, {
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246',
-          },
-        })
+        .get(this.groupsPageURL, { responseType: 'arraybuffer' })
         .toPromise()
         .then(async (res) => {
-          const groups = parse(res.data)
+          const groups = parse(decode('windows-1250', res.data))
             .querySelectorAll('select > option')
             .map((i) => {
               if (i.attributes.value === undefined) return;

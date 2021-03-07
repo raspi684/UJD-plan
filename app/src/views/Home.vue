@@ -2,7 +2,7 @@
   <v-container>
     <v-stepper v-model="step" vertical>
       <v-stepper-step :complete="step > 1" step="1">
-        Wybierz grupę
+        Wybierz grupę/prowadzącego
       </v-stepper-step>
 
       <v-stepper-content step="1">
@@ -11,7 +11,8 @@
             <v-col sm="12" md="4" lg="3">
               <v-form :disabled="groupsFetching">
                 <v-autocomplete
-                  label="Grupa"
+                  placeholder="Wpisz, aby filtrować listę"
+                  label="Grupa/Prowadzący"
                   :items="groups"
                   :loading="groupsFetching"
                   item-text="group"
@@ -45,7 +46,7 @@
       </v-stepper-content>
 
       <v-stepper-step :complete="step > 2" step="3">
-        Plan
+        Plan {{ groupName && `dla ${groupName}` }}
       </v-stepper-step>
 
       <v-stepper-content step="3">
@@ -101,7 +102,6 @@ import config from "@/config/index.js";
 
 export default {
   name: "Home",
-  components: {},
   methods: {
     getWeek: date => {
       const onejan = new Date(date.getFullYear(), 0, 1);
@@ -220,6 +220,16 @@ export default {
       handler(val) {
         if (this.$route.query.qa === val) return;
         this.$router.push({ query: { qa: val } });
+      }
+    }
+  },
+  computed: {
+    groupName: {
+      get() {
+        let groupName =
+          this.groups &&
+          this.groups.filter(i => i.filename === this.selectedGroup)[0];
+        return groupName?.group?.split(",")[1];
       }
     }
   }
