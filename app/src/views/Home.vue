@@ -59,7 +59,7 @@
               <v-icon>mdi-chevron-right</v-icon>
             </v-btn>
             <v-select
-              v-model="type"
+              v-model="calendarType"
               :items="types"
               dense
               outlined
@@ -76,7 +76,7 @@
               <v-calendar
                 color="primary"
                 ref="calendar"
-                :type="type"
+                :type="calendarType"
                 :events="events"
                 :value="today"
                 :weekdays="[1, 2, 3, 4, 5, 6, 0]"
@@ -170,6 +170,7 @@ export default {
   },
   mounted() {
     this.selectedGroup = this.$route.query.qa || "";
+    this.calendarType = this.$route.query.pt || "week";
     if (this.selectedGroup) this.step = 2;
 
     fetch(`${config.base_url}/groups`).then(value => {
@@ -190,11 +191,11 @@ export default {
   },
   data: () => {
     return {
-      type: "week",
+      calendarType: "week",
       types: [
-        { text: "Miesiąc", value: "month" },
+        { text: "Dzień", value: "day" },
         { text: "Tydzień", value: "week" },
-        { text: "Dzień", value: "day" }
+        { text: "Miesiąc", value: "month" }
       ],
       value: "",
       groups: [],
@@ -219,7 +220,13 @@ export default {
     selectedGroup: {
       handler(val) {
         if (this.$route.query.qa === val) return;
-        this.$router.push({ query: { qa: val } });
+        this.$router.push({ query: { ...this.$route.query, qa: val } });
+      }
+    },
+    calendarType: {
+      handler(val) {
+        if (this.$route.query.pt === val) return;
+        this.$router.push({ query: { ...this.$route.query, pt: val } });
       }
     }
   },
