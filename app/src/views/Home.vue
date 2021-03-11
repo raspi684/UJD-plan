@@ -81,9 +81,10 @@
                 :value="today"
                 :weekdays="[1, 2, 3, 4, 5, 6, 0]"
                 v-model="value"
-                interval-minutes="60"
-                first-interval="7"
-                interval-count="14"
+                interval-minutes="30"
+                :interval-format="calendarIntervalFormat"
+                :first-interval="7 * 2"
+                :interval-count="14 * 2"
                 locale="pl"
               >
                 <template v-slot:day-body="{ date, week }">
@@ -186,7 +187,10 @@ export default {
       this.cal.scrollToTime(first);
     },
     updateTime() {
-      setInterval(() => this.cal.updateTimes(), 60 * 1000);
+      setInterval(() => this.cal.updateTimes(), 1 * 1000);
+    },
+    calendarIntervalFormat(interval) {
+      return interval.time;
     }
   },
   mounted() {
@@ -277,7 +281,7 @@ export default {
 
 <style lang="scss">
 .v-current-time {
-  height: 3px;
+  height: 2px;
   background-color: #22bc8e;
   position: absolute;
   left: -1px;
