@@ -72,7 +72,7 @@
             </v-toolbar-title>
           </v-toolbar>
           <v-card-text>
-            <v-sheet height="640">
+            <v-sheet height="740">
               <v-calendar
                 color="primary"
                 ref="calendar"
@@ -85,7 +85,14 @@
                 first-interval="7"
                 interval-count="14"
                 locale="pl"
-              ></v-calendar
+              >
+                <template v-slot:day-body="{ date, week }">
+                  <div
+                    class="v-current-time"
+                    :class="{ first: date === week[0].date }"
+                    :style="{ top: nowY }"
+                  ></div>
+                </template> </v-calendar
             ></v-sheet>
           </v-card-text>
         </v-card>
@@ -166,6 +173,20 @@ export default {
           }
         });
       });
+    },
+    getCurrentTime() {
+      return this.cal
+        ? this.cal.times.now.hour * 60 + this.cal.times.now.minute
+        : 0;
+    },
+    scrollToTime() {
+      const time = this.getCurrentTime();
+      const first = Math.max(0, time - (time % 30) - 30);
+
+      this.cal.scrollToTime(first);
+    },
+    updateTime() {
+      setInterval(() => this.cal.updateTimes(), 60 * 1000);
     }
   },
   mounted() {
@@ -188,6 +209,10 @@ export default {
       }
     );
     this.calendarTitle = this.$refs.calendar.title;
+
+    this.ready = true;
+    this.scrollToTime();
+    this.updateTime();
   },
   data: () => {
     return {
@@ -205,7 +230,8 @@ export default {
       today: new Date(),
       events: [],
       calendarTitle: "",
-      groupsError: ""
+      groupsError: "",
+      ready: false
     };
   },
   watch: {
@@ -238,7 +264,35 @@ export default {
           this.groups.filter(i => i.filename === this.selectedGroup)[0];
         return groupName?.group?.split(",")[1];
       }
+    },
+    cal() {
+      return this.ready ? this.$refs.calendar : null;
+    },
+    nowY() {
+      return this.cal ? this.cal.timeToY(this.cal.times.now) + "px" : "-10px";
     }
   }
 };
 </script>
+
+<style lang="scss">
+.v-current-time {
+  height: 3px;
+  background-color: #22bc8e;
+  position: absolute;
+  left: -1px;
+  right: 0;
+  pointer-events: none;
+
+  &.first::before {
+    content: "";
+    position: absolute;
+    background-color: #22bc8e;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-top: -5px;
+    margin-left: -6.5px;
+  }
+}
+</style>
