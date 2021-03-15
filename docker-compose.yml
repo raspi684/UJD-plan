@@ -1,16 +1,14 @@
-version: '3.7'
+version: '3'
 
 services:
   api:
     build:
       context: ./api
+    ports:
+      - "10001:3000"
 
   app:
     build:
       context: ./app
-
-  nginx:
-    build:
-      context: ./docker/nginx
     ports:
-    - "80:80"
+      - "10002:80"
