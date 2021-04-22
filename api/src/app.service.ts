@@ -70,11 +70,16 @@ export class AppService {
 
       return data;
     } catch (e) {
-      switch (e.response.status) {
-        case 404:
-          throw new NotFoundException();
-        default:
-          throw new InternalServerErrorException();
+      if(e && e.response){
+        switch (e.response.status) {
+          case 404:
+            throw new NotFoundException();
+          default:
+            throw new InternalServerErrorException();
+        }
+      } else {
+        console.log(e);
+        throw new InternalServerErrorException();
       }
     }
   }
