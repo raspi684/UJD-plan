@@ -106,7 +106,7 @@
 
 <script>
 // @ is an alias to /src
-import config from "@/config/index.js";
+import { base_url } from "@/config/index.js";
 
 export default {
   name: "Home",
@@ -131,7 +131,7 @@ export default {
       this.events = [];
     },
     fetchTimetable() {
-      fetch(`${config.base_url}/groups/${this.selectedGroup}`).then(value => {
+      fetch(`${base_url}/groups/${this.selectedGroup}`).then(value => {
         value.json().then(json => {
           if (json?.statusCode) {
             this.groupsError = json.message;
@@ -198,7 +198,7 @@ export default {
     this.calendarType = this.$route.query.pt || "week";
     if (this.selectedGroup) this.step = 2;
 
-    fetch(`${config.base_url}/groups`).then(value => {
+    fetch(`${base_url}/groups`).then(value => {
       value.json().then(json => {
         this.groups = json;
         this.groupsFetching = false;
