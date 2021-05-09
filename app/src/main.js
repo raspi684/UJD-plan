@@ -11,7 +11,7 @@ import { sentryConfig } from "./config";
 Vue.config.productionTip = false;
 Sentry.init({
   Vue,
-  dsn: sentryConfig,
+  sentryConfig,
   integrations: [new Integrations.BrowserTracing()],
   tracesSampleRate: 1.0
 });
