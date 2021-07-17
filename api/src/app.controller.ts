@@ -6,12 +6,12 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get('/groups')
-  async getGroups(): Promise<any> {
+  getGroups() {
     return this.appService.getGroups();
   }
 
   @Get('/groups/:filename')
-  async getTimetable(@Param('filename') filename: string): Promise<any> {
+  getTimetable(@Param('filename') filename: string) {
     return this.appService.getTimetable(filename);
   }
 }
