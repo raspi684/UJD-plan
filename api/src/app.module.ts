@@ -1,9 +1,15 @@
 import { CacheModule, HttpModule, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { SentryModule } from '@ntegral/nestjs-sentry';
+import { sentryConfig } from './config';
 
 @Module({
-  imports: [HttpModule, CacheModule.register({ ttl: 60 * 60 * 2 })],
+  imports: [
+    SentryModule.forRoot(sentryConfig),
+    HttpModule,
+    CacheModule.register(),
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
