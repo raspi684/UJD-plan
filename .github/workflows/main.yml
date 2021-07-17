@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - dev
+      - develop
 
 jobs:
   build:
@@ -17,4 +17,4 @@ jobs:
           heroku_email: ${{secrets.HEROKU_EMAIL}}
           appdir: "api"
           usedocker: true
-          branch: "dev"
+          branch: "develop"
